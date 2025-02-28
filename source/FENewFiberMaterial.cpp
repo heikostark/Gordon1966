@@ -25,7 +25,7 @@ FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMate
 }
 
 //-----------------------------------------------------------------------------
-void FENewActiveFiberContraction::Init() { }
+bool FENewActiveFiberContraction::Init() { return true; }
 
 //-----------------------------------------------------------------------------
 double FENewActiveFiberContraction::FiberStress(double lamd)
@@ -81,9 +81,10 @@ FENewFiberMaterial::FENewFiberMaterial(FEModel* pfem) : FEMaterial(pfem)
 }
 
 //-----------------------------------------------------------------------------
-void FENewFiberMaterial::Init()
+bool FENewFiberMaterial::Init()
 {        
-	if (m_pafc) m_pafc->Init();
+	if (m_pafc) return m_pafc->Init();
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -283,7 +284,7 @@ double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp)
 }
 
 //-----------------------------------------------------------------------------
-void FENewFiberMaterial::Serialize(DumpFile& ar)
+void FENewFiberMaterial::Serialize(DumpStream& ar)
 {
 	FEMaterial::Serialize(ar);
 	if (ar.IsSaving())

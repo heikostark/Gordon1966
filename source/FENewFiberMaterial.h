@@ -23,7 +23,7 @@ public:
 	FENewActiveFiberContraction(FEModel* pfem);
 	
 	//! initialization
-	void Init();
+	bool Init();
 
 	//! calculate the fiber stress
 	double FiberStress(double lamd);
@@ -50,7 +50,7 @@ public:
 	FENewFiberMaterial(FEModel* pfem);
 
 	//! Initialization
-	void Init();	
+	bool Init();	
 		
 	//! Calculate the fiber stress
 	mat3ds Stress(FEMaterialPoint& mp);
@@ -61,7 +61,7 @@ public:
 	//! Calculate the fiber strain energy density
 	double StrainEnergyDensity(FEMaterialPoint& mp);
 
-	void Serialize(DumpFile& ar);
+	void Serialize(DumpStream& ar);
 	
 	//! Set the active contraction property
 	void SetActiveContraction(FENewActiveFiberContraction* pma) { m_pafc = pma; }

@@ -20,13 +20,11 @@ public:
 	FENewFiberMaterial	m_fib;
 	
 	//! Initialization
-	void Init();
+	bool Init();
 
 	//! serialize material data
-	void Serialize(DumpFile& ar);
+	void Serialize(DumpStream& ar);
 	
-        bool SetAttribute(const char* szatt, const char* szval)	;
-
 	//! calculate deviatoric stress at material point
 	virtual mat3ds DevStress(FEMaterialPoint& pt);
 

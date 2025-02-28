@@ -31,32 +31,20 @@ FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfe
 
 //-----------------------------------------------------------------------------
 // Data initialization
-void FEGordon1966::Init()
+bool FEGordon1966::Init()
 {
-	FEUncoupledMaterial::Init();
-	m_fib.Init();	// first init for m_fib.m_pafc
+	if (FEUncoupledMaterial::Init() == false) return false;
+	if (m_fib.Init() == false) return false;	// first init for m_fib.m_pafc
 		//if (m_E <= 0) throw MaterialError("Invalid value for E");
 	//if (!IN_RIGHT_OPEN_RANGE(m_v, -1.0, 0.5)) throw MaterialRangeError("v", -1.0, 0.5, true, false);
 	printf("Muscle force l=%f (%E * %E * (%E,%E,%E,%E,%E))\n",m_fib.m_lam1,m_fib.m_pafc->m_ascl,m_fib.m_pafc->m_smax,m_c1,m_c2,m_fib.m_c3,m_fib.m_c4,m_fib.m_c5);
-}
 
-bool FEGordon1966::SetAttribute(const char* szatt, const char* szval)
-{
-	if (strcmp(szatt, "lc") == 0)
-	{
-		FEParameterList& pl = GetParameterList();
-		FEParam& p = *pl.Find("ascl");
-		p.m_nlc = atoi(szval)-1;
-		p.value<double>() = 1.0;
-		printf (" lc=%i",p.m_nlc);
-	}
-	printf ("\n");
 	return true;
 }
 
 //-----------------------------------------------------------------------------
 //! Serialize data to or from the dump file 
-void FEGordon1966::Serialize(DumpFile &ar)
+void FEGordon1966::Serialize(DumpStream& ar)
 {
 	// serialize the base class parameters
 	FEUncoupledMaterial::Serialize(ar);
