@@ -3,10 +3,80 @@
 
 //-----------------------------------------------------------------------------
 // define the material parameters
-BEGIN_PARAMETER_LIST(FEGordon1966, FETransverselyIsotropic)
+BEGIN_PARAMETER_LIST(FEGordon1966, FEUncoupledMaterial)
 	ADD_PARAMETER(c1, FE_PARAM_DOUBLE, "c1");
 	ADD_PARAMETER(c2, FE_PARAM_DOUBLE, "c2");
+	
+	ADD_PARAMETER(m_fib.m_c3, FE_PARAM_DOUBLE, "c3");
+	ADD_PARAMETER(m_fib.m_c4, FE_PARAM_DOUBLE, "c4");
+	ADD_PARAMETER(m_fib.m_c5, FE_PARAM_DOUBLE, "c5");
+	ADD_PARAMETER(m_fib.m_lam1, FE_PARAM_DOUBLE, "lam_max");
+	
+	ADD_PARAMETER(m_fib.m_pafc->m_ascl , FE_PARAM_DOUBLE, "ascl" );	
+	ADD_PARAMETER(m_fib.m_pafc->m_smax , FE_PARAM_DOUBLE, "smax" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ax , FE_PARAM_DOUBLE, "ax" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ay , FE_PARAM_DOUBLE, "ay" );
+	ADD_PARAMETER(m_fib.m_pafc->m_bx , FE_PARAM_DOUBLE, "bx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_by , FE_PARAM_DOUBLE, "by" );
+	ADD_PARAMETER(m_fib.m_pafc->m_cx , FE_PARAM_DOUBLE, "cx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_cy , FE_PARAM_DOUBLE, "cy" );
+	ADD_PARAMETER(m_fib.m_pafc->m_dx , FE_PARAM_DOUBLE, "dx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_dy , FE_PARAM_DOUBLE, "dy" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ex , FE_PARAM_DOUBLE, "ex" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ey , FE_PARAM_DOUBLE, "ey" );
 END_PARAMETER_LIST();
+
+//-----------------------------------------------------------------------------
+FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfem)  {   printf("Gordon1966\n"); }
+
+//-----------------------------------------------------------------------------
+// Data initialization
+void FEGordon1966::Init()
+{
+	m_fib.Init();	// first init for m_fib.m_pafc
+	FEUncoupledMaterial::Init();
+}
+
+//-----------------------------------------------------------------------------
+// This material has two properties (the fiber material and the active contraction material)
+int FEGordon1966::Properties() { return 2; }
+
+//-----------------------------------------------------------------------------
+FECoreBase* FEGordon1966::GetProperty(int n)
+{
+	if (n == 0) return &m_fib;
+	if (n == 1) return m_fib.GetActiveContraction();
+	return 0;
+}
+
+//-----------------------------------------------------------------------------
+//! find a material property index ( returns <0 for error)
+int FEGordon1966::FindPropertyIndex(const char* szname)
+{
+	return 1;
+}
+
+//-----------------------------------------------------------------------------
+//! set a material property (returns false on error)
+bool FEGordon1966::SetProperty(int i, FECoreBase* pm)
+{
+	if (i == 1)
+	{
+		FENewActiveFiberContraction* pma = dynamic_cast<FENewActiveFiberContraction*>(pm);
+		if (pma) { m_fib.SetActiveContraction(pma); return true; }
+	}
+	return false;
+}
+
+//-----------------------------------------------------------------------------
+//! Serialize data to or from the dump file 
+void FEGordon1966::Serialize(DumpFile &ar)
+{
+	// serialize the base class parameters
+	FEUncoupledMaterial::Serialize(ar);
+	// serialize fiber data
+	m_fib.Serialize(ar);
+}
 
 //-----------------------------------------------------------------------------
 mat3ds FEGordon1966::DevStress(FEMaterialPoint& mp)

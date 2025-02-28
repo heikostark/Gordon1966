@@ -11,30 +11,29 @@
 #endif
 
 #ifdef WIN32
-#include "targetver.h"
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-#include <windows.h>
+	#include "targetver.h"
+	#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+	#include <windows.h>
 
-BOOL APIENTRY DllMain( HMODULE hModule,
+	BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
 					 )
-{
-	switch (ul_reason_for_call)
 	{
-	case DLL_PROCESS_ATTACH:
-	case DLL_THREAD_ATTACH:
-	case DLL_THREAD_DETACH:
-	case DLL_PROCESS_DETACH:
-		break;
+		switch (ul_reason_for_call)
+		{
+		case DLL_PROCESS_ATTACH:
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:
+		case DLL_PROCESS_DETACH:
+			break;
+		}
+		return TRUE;
 	}
-	return TRUE;
-}
 
-#ifdef RegisterClass
-#undef RegisterClass
-#endif
-
+	#ifdef RegisterClass
+	#undef RegisterClass
+	#endif
 #endif // WIN32
 
 //-----------------------------------------------------------------------------
@@ -74,5 +73,4 @@ extern "C" DLL_EXPORT FECoreFactory* PluginGetFactory(int i)
 //-----------------------------------------------------------------------------
 extern "C" DLL_EXPORT void PluginCleanup()
 {
-
 }

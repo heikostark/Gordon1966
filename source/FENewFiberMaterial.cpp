@@ -3,33 +3,14 @@
 #include "FEBioMech/FEElasticMaterial.h"
 #include <stdlib.h>
 
-
 //-----------------------------------------------------------------------------
 BEGIN_PARAMETER_LIST(FENewActiveFiberContraction, FEMaterial);
-	ADD_PARAMETER(m_ascl , FE_PARAM_DOUBLE, "ascl" );
-	ADD_PARAMETER(m_smax , FE_PARAM_DOUBLE, "smax" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "ax" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "ay" );
-	ADD_PARAMETER(m_bx , FE_PARAM_DOUBLE, "bx" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "by" );
-	ADD_PARAMETER(m_cx , FE_PARAM_DOUBLE, "cx" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "cy" );
-	ADD_PARAMETER(m_dx , FE_PARAM_DOUBLE, "dx" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "dy" );
-	ADD_PARAMETER(m_ex , FE_PARAM_DOUBLE, "ex" );
-	ADD_PARAMETER(m_ax , FE_PARAM_DOUBLE, "ey" );
-// 	ADD_PARAMETER(m_Tmax , FE_PARAM_DOUBLE, "Tmax" );
-// 	ADD_PARAMETER(m_ca0  , FE_PARAM_DOUBLE, "ca0"  );
-// 	ADD_PARAMETER(m_camax, FE_PARAM_DOUBLE, "camax");
-// 	ADD_PARAMETER(m_beta , FE_PARAM_DOUBLE, "beta" );
-// 	ADD_PARAMETER(m_l0   , FE_PARAM_DOUBLE, "l0"   );
-// 	ADD_PARAMETER(m_refl , FE_PARAM_DOUBLE, "refl" );
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
 FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMaterial(pfem)
 {
-	m_ascl = 0;
+	m_ascl = 1;
 	m_smax = 1;
 	m_ax = 0.357; 
 	m_ay = 0;
@@ -41,78 +22,31 @@ FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMate
 	m_dy = 1;
 	m_ex = 1.521;
 	m_ey = 0;
-// 	m_Tmax = 1.0;
-// 	m_ca0 = 1.0;
-// 	m_camax = 0.0;
+	printf("NewActiveFiberContraction\n");
 }
 
 //-----------------------------------------------------------------------------
-bool FENewActiveFiberContraction::SetAttribute(const char* szatt, const char* szval)
-{
-	if (strcmp(szatt, "lc") == 0)
-	{
-		FEParameterList& pl = GetParameterList();
-		FEParam& p = *pl.Find("ascl");
-		p.m_nlc = atoi(szval)-1;
-		p.value<double>() = 1.0;
-	}
-	return true;
-}
-
-//-----------------------------------------------------------------------------
-void FENewActiveFiberContraction::Init()
-{
-	// for backward compatibility we set m_camax to m_ca0 if it is not defined
-// 	if (m_camax == 0.0) m_camax = m_ca0;
-// 	assert(m_camax > 0.0);
-}
+void FENewActiveFiberContraction::Init() { }
 
 //-----------------------------------------------------------------------------
 double FENewActiveFiberContraction::FiberStress(double lamd)
 {
-// 	double saf = 0.0;
-// 	if (m_ascl > 0)
-// 	{
-// 		double ctenslm = m_ascl;
-// 
-// 		// current sarcomere length
-// 		double strl = m_refl*lamd;
-// 
-// 		// sarcomere length change
-// 		double dl = strl - m_l0;
-// 
-// 		if (dl >= 0)
-// 		{
-// 			// calcium sensitivity
-// 			double eca50i = (exp(m_beta*dl) - 1);
-// 
-// 			// ratio of Camax/Ca0
-// 			double rca = m_camax/m_ca0;
-// 
-// 			// active fiber stress
-// 			saf = m_Tmax*(eca50i / ( eca50i + rca*rca ))*ctenslm;
-// 		}
-// 	}
-	
-	// --- active contraction contribution ---		
+	// --- active contraction contribution ---
 	double saf = 0.0;
 	if (m_ascl > 0)
 	{
-		double ctenslm = m_ascl; // activation scale factor	
+		double ctenslm = m_ascl; // activation scale factor
 		
 		double Wl = 0;
-		//if (lamd < m_ax) Wl = 0;
-		//else 
-		if (lamd < m_bx) Wl = m_ay + (lamd-m_ax)*((m_by-m_ay)/(m_bx-m_ax));
+		/*if (lamd < m_ax) Wl = 0;
+		else*/ if (lamd < m_bx) Wl = m_ay + (lamd-m_ax)*((m_by-m_ay)/(m_bx-m_ax));
 		else if (lamd < m_cx) Wl = m_by + (lamd-m_bx)*((m_cy-m_by)/(m_cx-m_bx));
 		else if (lamd < m_dx) Wl = m_cy + (lamd-m_cx)*((m_dy-m_cy)/(m_dx-m_cx));
 		else if (lamd < m_ex) Wl = m_dy + (lamd-m_dx)*((m_ey-m_dy)/(m_ex-m_dx));
-		//else Wl = 0;		
+		/*else Wl = 0;*/
 
 		saf = ctenslm * (m_smax * Wl); // activation * (max stress * W on lamd)
-		
 	}
-	
 	return saf;
 }
 
@@ -136,6 +70,10 @@ double FENewActiveFiberContraction::FiberStiffness(double lamd)
 }
 
 //=============================================================================
+//=============================================================================
+//=============================================================================
+
+//-----------------------------------------------------------------------------
 BEGIN_PARAMETER_LIST(FENewFiberMaterial, FEMaterial);
 END_PARAMETER_LIST();
 
@@ -144,19 +82,18 @@ FENewFiberMaterial::FENewFiberMaterial(FEModel* pfem) : FEMaterial(pfem)
 {
 	m_c3 = m_c4 = m_c5 = 0;
 	m_lam1 = 1;
-
-	m_pafc = 0;
+	SetActiveContraction (new FENewActiveFiberContraction(pfem));
+	printf("NewFiberMaterial\n");
 }
 
 //-----------------------------------------------------------------------------
 void FENewFiberMaterial::Init()
-{
+{        
 	if (m_pafc) m_pafc->Init();
 }
 
 //-----------------------------------------------------------------------------
 // Fiber material stress
-//
 mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp)
 {
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
@@ -225,7 +162,6 @@ mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp)
 
 //-----------------------------------------------------------------------------
 // Fiber material tangent
-//
 tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp)
 {
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
