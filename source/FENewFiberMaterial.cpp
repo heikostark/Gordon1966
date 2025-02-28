@@ -2,15 +2,14 @@
 #include "FENewFiberMaterial.h"
 #include "FEBioMech/FEElasticMaterial.h"
 #include <stdlib.h>
-
-//-----------------------------------------------------------------------------
-BEGIN_PARAMETER_LIST(FENewActiveFiberContraction, FEMaterial);
-END_PARAMETER_LIST();
+#ifdef HAVE_GSL
+#include "gsl/gsl_sf_expint.h"
+#endif
 
 //-----------------------------------------------------------------------------
 FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMaterial(pfem)
 {
-	m_ascl = 1;
+	m_ascl = 0;
 	m_smax = 1;
 	m_ax = 0.357; 
 	m_ay = 0;
@@ -22,7 +21,7 @@ FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMate
 	m_dy = 1;
 	m_ex = 1.521;
 	m_ey = 0;
-	printf("NewActiveFiberContraction\n");
+	printf("    NewActiveFiberContraction\n");
 }
 
 //-----------------------------------------------------------------------------
@@ -36,7 +35,6 @@ double FENewActiveFiberContraction::FiberStress(double lamd)
 	if (m_ascl > 0)
 	{
 		double ctenslm = m_ascl; // activation scale factor
-		
 		double Wl = 0;
 		/*if (lamd < m_ax) Wl = 0;
 		else*/ if (lamd < m_bx) Wl = m_ay + (lamd-m_ax)*((m_by-m_ay)/(m_bx-m_ax));
@@ -74,16 +72,12 @@ double FENewActiveFiberContraction::FiberStiffness(double lamd)
 //=============================================================================
 
 //-----------------------------------------------------------------------------
-BEGIN_PARAMETER_LIST(FENewFiberMaterial, FEMaterial);
-END_PARAMETER_LIST();
-
-//-----------------------------------------------------------------------------
 FENewFiberMaterial::FENewFiberMaterial(FEModel* pfem) : FEMaterial(pfem)
 {
 	m_c3 = m_c4 = m_c5 = 0;
 	m_lam1 = 1;
 	SetActiveContraction (new FENewActiveFiberContraction(pfem));
-	printf("NewFiberMaterial\n");
+	printf("  NewFiberMaterial\n");	
 }
 
 //-----------------------------------------------------------------------------
@@ -237,6 +231,55 @@ tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp)
 	tens4ds c = (Id4 - IxI/3.0)*(4.0/3.0*Ji*WC) + IxI*(4.0/9.0*Ji*CWWC) + cw;
 
 	return c;
+}
+
+//-----------------------------------------------------------------------------
+// Fiber material strain energy density
+//
+double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp)
+{
+	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
+    
+	// get the deformation gradient
+	mat3d F = pt.m_F;
+	double J = pt.m_J;
+	double Jm13 = pow(J, -1.0/3.0);
+    
+	// get the initial fiber direction
+	vec3d a0;
+	a0.x = pt.m_Q[0][0];
+	a0.y = pt.m_Q[1][0];
+	a0.z = pt.m_Q[2][0];
+    
+	// calculate the current material axis lam*a = F*a0;
+	vec3d a = F*a0;
+    
+	// normalize material axis and store fiber stretch
+	double lam, lamd;
+	lam = a.unit();
+	lamd = lam*Jm13; // i.e. lambda tilde
+    
+	// strain energy density
+	double sed = 0.0;
+#ifdef HAVE_GSL
+	if (lamd > 1)
+	{
+		if (lamd < m_lam1)
+		{
+			sed = m_c3*(exp(-m_c4)*
+                        (gsl_sf_expint_Ei(m_c4*lamd)-gsl_sf_expint_Ei(m_c4))
+                        - log(lamd));
+		}
+		else
+		{
+			double c6 = m_c3*(exp(m_c4*(m_lam1-1))-1) - m_c5*m_lam1;
+			sed = m_c5*(lamd-1) + c6*log(lamd);
+		}
+	}
+#endif
+	// --- active contraction contribution to sed is zero ---
+    
+	return sed;
 }
 
 //-----------------------------------------------------------------------------

@@ -14,8 +14,8 @@ public:
 	//! constructor
 	FEGordon1966(FEModel* pfem);
 
-	double	c1;	//!< Mooney-Rivlin coefficient C1
-	double	c2;	//!< Mooney-Rivlin coefficient C2
+	double	m_c1;	//!< Mooney-Rivlin coefficient C1
+	double	m_c2;	//!< Mooney-Rivlin coefficient C2
 	
 	FENewFiberMaterial	m_fib;
 	
@@ -24,18 +24,8 @@ public:
 
 	//! serialize material data
 	void Serialize(DumpFile& ar);
-
-	//! return the number of properties
-	int Properties();
-
-	//! return a pointer to the property
-	FECoreBase* GetProperty(int n);
-
-	//! find a material property index ( returns <0 for error)
-	int FindPropertyIndex(const char* szname);
-
-	//! set a material property (returns false on error)
-	bool SetProperty(int i, FECoreBase* pm);
+	
+        bool SetAttribute(const char* szatt, const char* szval)	;
 
 	//! calculate deviatoric stress at material point
 	virtual mat3ds DevStress(FEMaterialPoint& pt);

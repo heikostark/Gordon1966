@@ -4,8 +4,8 @@
 //-----------------------------------------------------------------------------
 // define the material parameters
 BEGIN_PARAMETER_LIST(FEGordon1966, FEUncoupledMaterial)
-	ADD_PARAMETER(c1, FE_PARAM_DOUBLE, "c1");
-	ADD_PARAMETER(c2, FE_PARAM_DOUBLE, "c2");
+	ADD_PARAMETER(m_c1, FE_PARAM_DOUBLE, "c1");
+	ADD_PARAMETER(m_c2, FE_PARAM_DOUBLE, "c2");
 	
 	ADD_PARAMETER(m_fib.m_c3, FE_PARAM_DOUBLE, "c3");
 	ADD_PARAMETER(m_fib.m_c4, FE_PARAM_DOUBLE, "c4");
@@ -27,45 +27,31 @@ BEGIN_PARAMETER_LIST(FEGordon1966, FEUncoupledMaterial)
 END_PARAMETER_LIST();
 
 //-----------------------------------------------------------------------------
-FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfem)  {   printf("Gordon1966\n"); }
+FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfem)  {   printf("Gordon1966"); }
 
 //-----------------------------------------------------------------------------
 // Data initialization
 void FEGordon1966::Init()
 {
-	m_fib.Init();	// first init for m_fib.m_pafc
 	FEUncoupledMaterial::Init();
+	m_fib.Init();	// first init for m_fib.m_pafc
+		//if (m_E <= 0) throw MaterialError("Invalid value for E");
+	//if (!IN_RIGHT_OPEN_RANGE(m_v, -1.0, 0.5)) throw MaterialRangeError("v", -1.0, 0.5, true, false);
+	printf("Muscle force l=%f (%E * %E * (%E,%E,%E,%E,%E))\n",m_fib.m_lam1,m_fib.m_pafc->m_ascl,m_fib.m_pafc->m_smax,m_c1,m_c2,m_fib.m_c3,m_fib.m_c4,m_fib.m_c5);
 }
 
-//-----------------------------------------------------------------------------
-// This material has two properties (the fiber material and the active contraction material)
-int FEGordon1966::Properties() { return 2; }
-
-//-----------------------------------------------------------------------------
-FECoreBase* FEGordon1966::GetProperty(int n)
+bool FEGordon1966::SetAttribute(const char* szatt, const char* szval)
 {
-	if (n == 0) return &m_fib;
-	if (n == 1) return m_fib.GetActiveContraction();
-	return 0;
-}
-
-//-----------------------------------------------------------------------------
-//! find a material property index ( returns <0 for error)
-int FEGordon1966::FindPropertyIndex(const char* szname)
-{
-	return 1;
-}
-
-//-----------------------------------------------------------------------------
-//! set a material property (returns false on error)
-bool FEGordon1966::SetProperty(int i, FECoreBase* pm)
-{
-	if (i == 1)
+	if (strcmp(szatt, "lc") == 0)
 	{
-		FENewActiveFiberContraction* pma = dynamic_cast<FENewActiveFiberContraction*>(pm);
-		if (pma) { m_fib.SetActiveContraction(pma); return true; }
+		FEParameterList& pl = GetParameterList();
+		FEParam& p = *pl.Find("ascl");
+		p.m_nlc = atoi(szval)-1;
+		p.value<double>() = 1.0;
+		printf (" lc=%i",p.m_nlc);
 	}
-	return false;
+	printf ("\n");
+	return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -100,8 +86,8 @@ mat3ds FEGordon1966::DevStress(FEMaterialPoint& mp)
 
 	// --- TODO: put strain energy derivatives here ---
 	// Wi = dW/dIi
-	double W1 = c1;
-	double W2 = c2;
+	double W1 = m_c1;
+	double W2 = m_c2;
 	// ------------------------------------------------
 
 	// calculate T = F*dW/dC*Ft
@@ -139,8 +125,8 @@ tens4ds FEGordon1966::DevTangent(FEMaterialPoint& mp)
 	// --- TODO: put strain energy derivatives here ---
 	// Wi = dW/dIi
 	double W1, W2;
-	W1 = c1;
-	W2 = c2;
+	W1 = m_c1;
+	W2 = m_c2;
 	// ------------------------------------
 
 	// calculate dWdC:C
