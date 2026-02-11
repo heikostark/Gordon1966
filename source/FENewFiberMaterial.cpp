@@ -25,7 +25,7 @@ FENewActiveFiberContraction::FENewActiveFiberContraction(FEModel* pfem) : FEMate
 }
 
 //-----------------------------------------------------------------------------
-void FENewActiveFiberContraction::Init() { }
+bool FENewActiveFiberContraction::Init() { return true; }
 
 //-----------------------------------------------------------------------------
 double FENewActiveFiberContraction::FiberStress(double lamd)
@@ -81,14 +81,15 @@ FENewFiberMaterial::FENewFiberMaterial(FEModel* pfem) : FEMaterial(pfem)
 }
 
 //-----------------------------------------------------------------------------
-void FENewFiberMaterial::Init()
+bool FENewFiberMaterial::Init()
 {        
-	if (m_pafc) m_pafc->Init();
+	if (m_pafc) return m_pafc->Init();
+	return true;
 }
 
 //-----------------------------------------------------------------------------
 // Fiber material stress
-mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp)
+mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp, const vec3d& a0)
 {
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
 
@@ -98,12 +99,6 @@ mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp)
 	double Ji = 1.0 / J;
 	double Jm13 = pow(J, -1.0/3.0);
 	double twoJi = 2.0*Ji;
-
-	// get the initial fiber direction
-	vec3d a0;
-	a0.x = pt.m_Q[0][0];
-	a0.y = pt.m_Q[1][0];
-	a0.z = pt.m_Q[2][0];
 
 	// calculate the current material axis lam*a = F*a0;
 	vec3d a = F*a0;
@@ -156,7 +151,7 @@ mat3ds FENewFiberMaterial::Stress(FEMaterialPoint &mp)
 
 //-----------------------------------------------------------------------------
 // Fiber material tangent
-tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp)
+tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp, const vec3d& a0)
 {
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
 
@@ -166,12 +161,6 @@ tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp)
 	double Jm13 = pow(J, -1.0/3.0);
 	double Jm23 = Jm13*Jm13;
 	double Ji = 1.0/J;
-
-	// get initial local material axis
-	vec3d a0;
-	a0.x = pt.m_Q[0][0];
-	a0.y = pt.m_Q[1][0];
-	a0.z = pt.m_Q[2][0];
 
 	// calculate current local material axis
 	vec3d a = F*a0;
@@ -236,7 +225,7 @@ tens4ds FENewFiberMaterial::Tangent(FEMaterialPoint &mp)
 //-----------------------------------------------------------------------------
 // Fiber material strain energy density
 //
-double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp)
+double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp, const vec3d& a0)
 {
 	FEElasticMaterialPoint& pt = *mp.ExtractData<FEElasticMaterialPoint>();
     
@@ -244,12 +233,6 @@ double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp)
 	mat3d F = pt.m_F;
 	double J = pt.m_J;
 	double Jm13 = pow(J, -1.0/3.0);
-    
-	// get the initial fiber direction
-	vec3d a0;
-	a0.x = pt.m_Q[0][0];
-	a0.y = pt.m_Q[1][0];
-	a0.z = pt.m_Q[2][0];
     
 	// calculate the current material axis lam*a = F*a0;
 	vec3d a = F*a0;
@@ -283,7 +266,7 @@ double FENewFiberMaterial::StrainEnergyDensity(FEMaterialPoint &mp)
 }
 
 //-----------------------------------------------------------------------------
-void FENewFiberMaterial::Serialize(DumpFile& ar)
+void FENewFiberMaterial::Serialize(DumpStream& ar)
 {
 	FEMaterial::Serialize(ar);
 	if (ar.IsSaving())

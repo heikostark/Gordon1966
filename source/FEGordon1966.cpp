@@ -3,65 +3,70 @@
 
 //-----------------------------------------------------------------------------
 // define the material parameters
-BEGIN_PARAMETER_LIST(FEGordon1966, FEUncoupledMaterial)
-	ADD_PARAMETER(m_c1, FE_PARAM_DOUBLE, "c1");
-	ADD_PARAMETER(m_c2, FE_PARAM_DOUBLE, "c2");
+BEGIN_FECORE_CLASS(FEGordon1966, FEUncoupledMaterial)
+	ADD_PARAMETER(m_c1, FE_RANGE_GREATER(0.0), "c1")->setUnits(UNIT_PRESSURE);
+	ADD_PARAMETER(m_c2, FE_RANGE_GREATER(0.0), "c2")->setUnits(UNIT_PRESSURE);
 	
-	ADD_PARAMETER(m_fib.m_c3, FE_PARAM_DOUBLE, "c3");
-	ADD_PARAMETER(m_fib.m_c4, FE_PARAM_DOUBLE, "c4");
-	ADD_PARAMETER(m_fib.m_c5, FE_PARAM_DOUBLE, "c5");
-	ADD_PARAMETER(m_fib.m_lam1, FE_PARAM_DOUBLE, "lam_max");
+	ADD_PARAMETER(m_fib.m_c3, FE_RANGE_GREATER(0.0), "c3")->setUnits(UNIT_PRESSURE);
+	ADD_PARAMETER(m_fib.m_c4, FE_RANGE_GREATER(0.0), "c4")->setUnits(UNIT_NONE);
+	ADD_PARAMETER(m_fib.m_c5, FE_RANGE_GREATER(0.0), "c5")->setUnits(UNIT_PRESSURE);
+	ADD_PARAMETER(m_fib.m_lam1, FE_RANGE_GREATER(0.0), "lam_max")->setUnits(UNIT_NONE); // Maximal length
 	
-	ADD_PARAMETER(m_fib.m_pafc->m_ascl , FE_PARAM_DOUBLE, "ascl" );	
-	ADD_PARAMETER(m_fib.m_pafc->m_smax , FE_PARAM_DOUBLE, "smax" );
-	ADD_PARAMETER(m_fib.m_pafc->m_ax , FE_PARAM_DOUBLE, "ax" );
-	ADD_PARAMETER(m_fib.m_pafc->m_ay , FE_PARAM_DOUBLE, "ay" );
-	ADD_PARAMETER(m_fib.m_pafc->m_bx , FE_PARAM_DOUBLE, "bx" );
-	ADD_PARAMETER(m_fib.m_pafc->m_by , FE_PARAM_DOUBLE, "by" );
-	ADD_PARAMETER(m_fib.m_pafc->m_cx , FE_PARAM_DOUBLE, "cx" );
-	ADD_PARAMETER(m_fib.m_pafc->m_cy , FE_PARAM_DOUBLE, "cy" );
-	ADD_PARAMETER(m_fib.m_pafc->m_dx , FE_PARAM_DOUBLE, "dx" );
-	ADD_PARAMETER(m_fib.m_pafc->m_dy , FE_PARAM_DOUBLE, "dy" );
-	ADD_PARAMETER(m_fib.m_pafc->m_ex , FE_PARAM_DOUBLE, "ex" );
-	ADD_PARAMETER(m_fib.m_pafc->m_ey , FE_PARAM_DOUBLE, "ey" );
-END_PARAMETER_LIST();
+	ADD_PARAMETER(m_fib.m_pafc->m_ascl , FE_RANGE_GREATER_OR_EQUAL(0.0), "ascl" ); // Activation	
+	ADD_PARAMETER(m_fib.m_pafc->m_smax , FE_RANGE_GREATER(0.0), "smax" ); // Maximal Force
+	
+	ADD_PARAMETER(m_fib.m_pafc->m_ax , FE_RANGE_GREATER_OR_EQUAL(0.0), "ax" ); // Force-Length-Curve
+	ADD_PARAMETER(m_fib.m_pafc->m_ay , FE_RANGE_GREATER_OR_EQUAL(0.0), "ay" );
+	ADD_PARAMETER(m_fib.m_pafc->m_bx , FE_RANGE_GREATER_OR_EQUAL(0.0), "bx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_by , FE_RANGE_GREATER_OR_EQUAL(0.0), "by" );
+	ADD_PARAMETER(m_fib.m_pafc->m_cx , FE_RANGE_GREATER_OR_EQUAL(0.0), "cx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_cy , FE_RANGE_GREATER_OR_EQUAL(0.0), "cy" );
+	ADD_PARAMETER(m_fib.m_pafc->m_dx , FE_RANGE_GREATER_OR_EQUAL(0.0), "dx" );
+	ADD_PARAMETER(m_fib.m_pafc->m_dy , FE_RANGE_GREATER_OR_EQUAL(0.0), "dy" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ex , FE_RANGE_GREATER_OR_EQUAL(0.0), "ex" );
+	ADD_PARAMETER(m_fib.m_pafc->m_ey , FE_RANGE_GREATER_OR_EQUAL(0.0), "ey" );
+	
+	ADD_PROPERTY(m_fiber, "fiber")->SetDefaultType("vector");
+
+//	ADD_PROPERTY(m_ac, "active_contraction", FEProperty::Optional);
+END_FECORE_CLASS();
 
 //-----------------------------------------------------------------------------
-FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfem)  {   printf("Gordon1966"); }
+FEGordon1966::FEGordon1966(FEModel* pfem) : FEUncoupledMaterial(pfem), m_fib(pfem)  
+{   
+	printf("Gordon1966"); 
+	m_c1 = 0.0;
+	m_c2 = 0.0;
+
+	//m_ac = nullptr;
+	//m_fib.SetParent(this);
+	m_fiber = nullptr;
+}
+
+//-----------------------------------------------------------------------------
+//! create material point data
+FEMaterialPointData* FEGordon1966::CreateMaterialPointData() 
+{
+    // create the elastic solid material point
+    FEMaterialPointData* ep = new FEElasticMaterialPoint;
+    
+    // create the material point from the active contraction material
+    //if (m_ac) ep->Append(m_ac->CreateMaterialPointData());
+
+	return ep;
+}
 
 //-----------------------------------------------------------------------------
 // Data initialization
-void FEGordon1966::Init()
+bool FEGordon1966::Init()
 {
-	FEUncoupledMaterial::Init();
-	m_fib.Init();	// first init for m_fib.m_pafc
+	if (FEUncoupledMaterial::Init() == false) return false;
+	if (m_fib.Init() == false) return false;	// first init for m_fib.m_pafc
 		//if (m_E <= 0) throw MaterialError("Invalid value for E");
 	//if (!IN_RIGHT_OPEN_RANGE(m_v, -1.0, 0.5)) throw MaterialRangeError("v", -1.0, 0.5, true, false);
 	printf("Muscle force l=%f (%E * %E * (%E,%E,%E,%E,%E))\n",m_fib.m_lam1,m_fib.m_pafc->m_ascl,m_fib.m_pafc->m_smax,m_c1,m_c2,m_fib.m_c3,m_fib.m_c4,m_fib.m_c5);
-}
 
-bool FEGordon1966::SetAttribute(const char* szatt, const char* szval)
-{
-	if (strcmp(szatt, "lc") == 0)
-	{
-		FEParameterList& pl = GetParameterList();
-		FEParam& p = *pl.Find("ascl");
-		p.m_nlc = atoi(szval)-1;
-		p.value<double>() = 1.0;
-		printf (" lc=%i",p.m_nlc);
-	}
-	printf ("\n");
 	return true;
-}
-
-//-----------------------------------------------------------------------------
-//! Serialize data to or from the dump file 
-void FEGordon1966::Serialize(DumpFile &ar)
-{
-	// serialize the base class parameters
-	FEUncoupledMaterial::Serialize(ar);
-	// serialize fiber data
-	m_fib.Serialize(ar);
 }
 
 //-----------------------------------------------------------------------------
@@ -77,13 +82,20 @@ mat3ds FEGordon1966::DevStress(FEMaterialPoint& mp)
 	mat3ds B = pt.DevLeftCauchyGreen();
 
 	// calculate square of B
-	mat3ds B2 = B*B;
+	mat3ds B2 = B.sqr();
 
 	// Invariants of B (= invariants of C)
 	// Note that these are the invariants of Btilde, not of B!
 	double I1 = B.tr();
 	double I2 = 0.5*(I1*I1 - B2.tr());
 
+	// material axes
+	mat3d Q = GetLocalCS(mp);
+	// get the fiber vector in local coordinates
+	vec3d fiber = m_fiber->unitVector(mp);
+	// convert to global coordinates
+	vec3d a0 = Q * fiber;	
+	
 	// --- TODO: put strain energy derivatives here ---
 	// Wi = dW/dIi
 	double W1 = m_c1;
@@ -97,7 +109,7 @@ mat3ds FEGordon1966::DevStress(FEMaterialPoint& mp)
 	mat3ds s = T.dev()*(2.0/J);
 
 	// add the fiber stress
-	s += m_fib.Stress(mp);
+	s += m_fib.Stress(mp,a0);
 
 	return s;
 }
@@ -116,12 +128,19 @@ tens4ds FEGordon1966::DevTangent(FEMaterialPoint& mp)
 	mat3ds B = pt.DevLeftCauchyGreen();
 
 	// calculate square of B
-	mat3ds B2 = B*B;
+	mat3ds B2 = B.sqr();
 
 	// Invariants of B (= invariants of C)
 	double I1 = B.tr();
 	double I2 = 0.5*(I1*I1 - B2.tr());
 
+	// material axes
+	mat3d Q = GetLocalCS(mp);
+	// get the fiber vector in local coordinates
+	vec3d fiber = m_fiber->unitVector(mp);
+	// convert to global coordinates
+	vec3d a0 = Q * fiber;	
+	
 	// --- TODO: put strain energy derivatives here ---
 	// Wi = dW/dIi
 	double W1, W2;
@@ -153,5 +172,5 @@ tens4ds FEGordon1966::DevTangent(FEMaterialPoint& mp)
 	tens4ds cw = (BxB - B4)*(W2*4.0*Ji) - dyad1s(WCCxC, I)*(4.0/3.0*Ji) + IxI*(4.0/9.0*Ji*CWWC);
 	tens4ds c = dyad1s(devs, I)*(-2.0/3.0) + (I4 - IxI/3.0)*(4.0/3.0*Ji*WC) + cw;
 
-	return c + m_fib.Tangent(mp);
+	return c + m_fib.Tangent(mp,a0);
 }

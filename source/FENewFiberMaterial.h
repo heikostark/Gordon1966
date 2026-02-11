@@ -1,5 +1,6 @@
 #pragma once
 #include "FECore/FEMaterial.h"
+#include "FEBioMech/FEUncoupledMaterial.h"
 
 //-----------------------------------------------------------------------------
 //! A material class describing the active fiber contraction
@@ -23,7 +24,7 @@ public:
 	FENewActiveFiberContraction(FEModel* pfem);
 	
 	//! initialization
-	void Init();
+	bool Init();
 
 	//! calculate the fiber stress
 	double FiberStress(double lamd);
@@ -50,18 +51,18 @@ public:
 	FENewFiberMaterial(FEModel* pfem);
 
 	//! Initialization
-	void Init();	
+	bool Init();	
 		
 	//! Calculate the fiber stress
-	mat3ds Stress(FEMaterialPoint& mp);
+	mat3ds Stress(FEMaterialPoint& mp, const vec3d& n0);
 
 	//! Calculate the fiber tangent
-	tens4ds Tangent(FEMaterialPoint& mp);
+	tens4ds Tangent(FEMaterialPoint& mp, const vec3d& n0);
 	
 	//! Calculate the fiber strain energy density
-	double StrainEnergyDensity(FEMaterialPoint& mp);
+	double StrainEnergyDensity(FEMaterialPoint& mp, const vec3d& n0);
 
-	void Serialize(DumpFile& ar);
+	void Serialize(DumpStream& ar);
 	
 	//! Set the active contraction property
 	void SetActiveContraction(FENewActiveFiberContraction* pma) { m_pafc = pma; }
