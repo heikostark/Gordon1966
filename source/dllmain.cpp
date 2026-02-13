@@ -2,6 +2,7 @@
 // with the FEBio framework. 
 #include <FECore/FECoreKernel.h>
 #include "FEGordon1966.h"
+#include "version.h"
 
 //-----------------------------------------------------------------------------
 // This required function returns the version of the FEBio SDK that is being
@@ -24,6 +25,8 @@ FECORE_EXPORT void PluginInitialize(FECoreKernel& febio)
 	// This is to ensure that the plugin features are registered in FEBio's kernel. 
 	FECoreKernel::SetInstance(&febio);
 
+	febio.SetActiveModule("solid");	// set the active module to "solid" so that the new feature is registered in the solid module.
+
 	// This macro registers the new feature and assign a string to it that
 	// can be used to reference this class in the FEBio input file.
 	REGISTER_FECORE_CLASS(FEGordon1966, "gordon1966");
@@ -36,4 +39,11 @@ FECORE_EXPORT void PluginInitialize(FECoreKernel& febio)
 FECORE_EXPORT void PluginCleanup()
 {
 
+}
+
+FECORE_EXPORT void GetPluginVersion(int& major, int& minor, int& patch)
+{
+        major = VERSION;
+        minor = SUBVERSION;
+        patch = SUBSUBVERSION;
 }
